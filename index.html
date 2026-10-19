@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#044794" />
+    <title>Scaffold</title>
+    <script type="importmap">
+      { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main id="scene" aria-label="Interactive isometric moonbase with a habitat cluster and three Endeavors"></main>
+    <h1 class="brand"><img src="/title.webp" alt="Scaffold" width="2000" height="494" /></h1>
+    <div id="labels" class="labels"></div>
+    <p class="hint">Drag to orbit · Scroll to zoom · Click a habitat or Endeavor to fly in · Esc to step back</p>
+
+    <div class="crafts" id="crafts" hidden>
+      <section class="crafts-card" role="dialog" aria-modal="true" aria-labelledby="crafts-title" tabindex="-1">
+        <header class="crafts-head">
+          <div>
+            <p class="crafts-kicker">Maker Space</p>
+            <h2 id="crafts-title">Crafts</h2>
+          </div>
+          <label class="crafts-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
+            <input type="search" placeholder="Search crafts" aria-label="Search crafts" />
+          </label>
+          <button class="crafts-close" type="button" aria-label="Close crafts">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </header>
+        <div class="crafts-body">
+          <section class="crafts-section" aria-labelledby="crafts-start-title">
+            <h3 id="crafts-start-title">Start a new craft</h3>
+            <button class="craft-new" type="button">
+              <span class="craft-thumb" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+              </span>
+              <span class="craft-name">New craft</span>
+              <span class="craft-meta">Blank dot-grid canvas</span>
+            </button>
+          </section>
+          <section class="crafts-section" aria-labelledby="crafts-recent-title">
+            <div class="crafts-section-head">
+              <h3 id="crafts-recent-title">Your crafts</h3>
+              <span class="crafts-count"></span>
+            </div>
+            <div class="crafts-grid"></div>
+            <p class="crafts-empty" hidden></p>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <div class="craft-editor" id="craft-editor" hidden>
+      <div class="craft-board"></div>
+      <header class="craft-bar">
+        <button class="craft-back" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+          Crafts
+        </button>
+        <input class="craft-title" type="text" maxlength="80" aria-label="Craft name" />
+        <span class="craft-status" aria-live="polite"></span>
+        <button class="craft-panel-toggle" type="button" aria-pressed="true" aria-label="Show properties panel" title="Properties panel">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" /><path d="M14.5 4.5v15" /></svg>
+        </button>
+      </header>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
