@@ -114,9 +114,12 @@ for (const habitat of habitats) {
   label.style.setProperty('--accent', hexColor(habitat.accent));
   const title = document.createElement('strong');
   title.textContent = habitat.name;
-  const detail = document.createElement('span');
-  detail.textContent = habitat.caption;
-  label.append(title, detail);
+  label.append(title);
+  if (habitat.caption) {
+    const detail = document.createElement('span');
+    detail.textContent = habitat.caption;
+    label.append(detail);
+  }
   label.addEventListener('click', () => focus(sector));
   label.addEventListener('pointerenter', () => setHover(sector));
   label.addEventListener('pointerleave', () => setHover(undefined));

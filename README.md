@@ -1,6 +1,6 @@
 # Moonbase Settlement Planner
 
-A browser based isometric lunar settlement built with Three.js and Vite. A compact honeycomb of three habitats sits in the middle, with abstract hexagon outlines marking the empty cells. Three smaller, free-floating **Endeavors** (Tree, Maker Space and Calendar Planning) surround it. Every room is open-topped, furnished and populated so you can look straight in.
+A browser based isometric lunar settlement built with Three.js and Vite. A compact honeycomb of three habitats sits in the middle, with abstract hexagon outlines marking the empty cells. Three smaller, free-floating **Endeavors** (Tree, Idea Space and Life Planner) surround it. Every room is open-topped, furnished and populated so you can look straight in.
 
 ## Run locally
 
@@ -17,14 +17,14 @@ npm run dev
 | Workplace | Open-plan desk pods, glass meeting room, kitchenette, phone booth, print station, lounge and lockers |
 | Startup | Exposed brick, crowded hack tables full of laptops and monitors, whiteboard wall, rolling whiteboards, couch nap corner, ping-pong, arcade cabinet and the deal gong |
 | Research | Raised-floor server hall with two rows of tall blinking racks behind a glass partition, plus a wet lab with fume hood, benches, microscopes, a liquid-handling robot and a quantum cryostat |
-| Maker Space | Holo desk with a glowing square-grid top, hologram and holo board, plus craft and electronics benches, pegboards, 3D printers, CNC router, robot arm, drone and an exosuit gantry |
-| Calendar Planning | Wall-sized calendar for the current month, live world clocks, kanban and roadmap boards, Gantt TV, planning table and a live launch countdown |
+| Idea Space | Holo desk with a glowing square-grid top, hologram and holo board, plus craft and electronics benches, pegboards, 3D printers, CNC router, robot arm, drone and an exosuit gantry |
+| Life Planner | Wall-sized calendar for the current month, live world clocks, kanban and roadmap boards, Gantt TV, planning table and a live launch countdown |
 
 ## Controls
 
 - Drag to orbit and scroll to zoom. Walls facing the camera fold down automatically, so the rooms stay visible from any angle.
 - Click a habitat, an Endeavor or its label to fly in, and press Esc or click empty space to return to the overview.
-- Clicking the Maker Space also opens **Crafts**, a translucent home card listing your crafts with preview thumbnails. A few sample crafts are seeded on the first visit.
+- Clicking the Idea Space also opens **Crafts**, a translucent home card listing your crafts with preview thumbnails. A few sample crafts are seeded on the first visit.
 
 ## Craft sketch board
 

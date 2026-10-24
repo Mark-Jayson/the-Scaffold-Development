@@ -1,4 +1,4 @@
-// Maker Space "Crafts" home: a translucent card listing crafts, plus a full-screen sketch board per craft.
+// Idea Space "Crafts" home: a translucent card listing crafts, plus a full-screen sketch board per craft.
 import { createBoard } from './board.js';
 import { loadDoc, saveDoc, loadThumb, saveThumb, forget } from './craft-store.js';
 

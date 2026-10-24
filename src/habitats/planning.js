@@ -27,8 +27,7 @@ function deskCalendar(parent, x, y, z, ry, face) {
 
 export default {
   id: 'planning',
-  name: 'Calendar Planning',
-  caption: 'Mission scheduling',
+  name: 'Life Planner',
   accent: 0x70c7d9,
   room: () => ({ floor: tiled(T.carpet('#3d5f70', '#44687b'), 2.4), wall: mat(0xf1eee8), glassSides: [0, 1, 2], glassFrom: 1.0 }),
   build({ content, room, random, tick }) {

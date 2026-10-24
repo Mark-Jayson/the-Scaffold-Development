@@ -180,8 +180,7 @@ function starkDesk(parent, tick, random) {
 
 export default {
   id: 'maker',
-  name: 'Maker Space',
-  caption: 'Fab lab',
+  name: 'Idea Space',
   accent: 0xe8c26c,
   room: () => ({ floor: tiled(T.rubber('#4a505a'), 2.5), wall: mat(0x767d8a, { roughness: 0.9 }), glassSides: [0, 1, 2], glassFrom: 1.0, mullion: mat(0x3b414c) }),
   build({ content, room, random, tick }) {

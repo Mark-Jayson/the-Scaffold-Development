@@ -47,7 +47,6 @@ function hydroTower(parent, x, z, ry, random) {
 export default {
   id: 'tree',
   name: 'Tree',
-  caption: 'Biodome',
   accent: 0xa6e04a,
   labelHeight: 18.5,
   room: () => ({ floor: tiled(T.grass(), 3.2), wall: mat(0xf2f2ec), glassSides: [0, 1, 2, 3, 4, 5], glassFrom: 0.9, mullion: mat(0xf8f8f4, { metalness: 0.2 }) }),

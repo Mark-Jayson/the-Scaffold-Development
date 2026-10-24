@@ -9,8 +9,10 @@ html,body,#scene{width:100%;height:100%;margin:0;overflow:hidden;background:#044
 .habitat-label:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);max-width:calc(100% - 32px);padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:rgba(240,243,250,.78);font:500 11px/1.3 system-ui,-apple-system,sans-serif;letter-spacing:.02em;text-align:center;pointer-events:none}
 .labels,.hint{z-index:5}
-.brand{position:fixed;top:24px;left:28px;z-index:6;width:clamp(150px,17vw,260px);margin:0;line-height:0;pointer-events:none;filter:drop-shadow(0 2px 12px rgba(0,18,56,.35))}
-.brand img{display:block;width:100%;height:auto}
+.brand{position:fixed;top:24px;left:28px;z-index:6;display:flex;align-items:center;gap:clamp(12px,1.3vw,20px);margin:0;line-height:1;pointer-events:none;filter:drop-shadow(0 2px 12px rgba(0,18,56,.35))}
+.brand img{display:block;width:clamp(150px,17vw,260px);height:auto}
+.brand-name{display:flex;align-items:center;gap:inherit;color:#fff;font:300 clamp(17px,1.85vw,28px)/1 Montserrat,system-ui,sans-serif;letter-spacing:.06em;white-space:nowrap}
+.brand-name:before{content:"";width:1px;height:1.3em;background:rgba(255,255,255,.55)}
 .endeavor-name{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 10px;border:0;background:none;color:#fff;font-family:Montserrat,system-ui,sans-serif;white-space:nowrap;pointer-events:auto;cursor:pointer;will-change:transform;text-shadow:0 2px 14px rgba(0,18,56,.55);transition:opacity .25s}
 .endeavor-name strong{font-weight:400;font-size:12px;letter-spacing:.16em;text-transform:uppercase}
 .endeavor-name span{font-weight:300;font-size:10.5px;letter-spacing:.06em;opacity:.72}
