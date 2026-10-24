@@ -6,6 +6,7 @@ import { sign, canvasTexture } from './textures.js';
 import { crafts } from './crafts.js';
 import { planner } from './planner/planner.js';
 import { studio } from './studio/studio.js';
+import { grove } from './grove/grove.js';
 import { ago } from './studio/platforms.js';
 import { logo } from './studio/logos.js';
 import { blueprint } from './blueprint.js';
@@ -41,7 +42,7 @@ const FURNISHING_SCALE = 1.15;
 
 // Endeavors live outside the scene as blueprints pinned to a screen corner; `slot` is the empty cell each one left behind.
 const habitats = [
-  { ...tree, slot: hexAt(-1, 0), endeavor: 'top-right', seed: 101 },
+  { ...tree, slot: hexAt(-1, 0), endeavor: 'top-right', opensTree: true, seed: 101 },
   { ...studios, slot: hexAt(0, 0), seed: 202 },
   { ...startup, slot: hexAt(1, 0), cardSide: 'left', seed: 303 },
   { ...research, slot: hexAt(-1, 1), cardSide: 'left', seed: 404 },
@@ -108,7 +109,7 @@ for (const habitat of habitats.filter(entry => entry.endeavor)) {
   area.userData.ghost = ghost;
   scene.add(area);
   ghostAreas.push(area);
-  const onOpen = habitat.opensCrafts ? () => crafts.open() : habitat.opensPlanner ? () => planner.open() : undefined;
+  const onOpen = habitat.opensCrafts ? () => crafts.open() : habitat.opensPlanner ? () => planner.open() : habitat.opensTree ? () => grove.open() : undefined;
   blueprints.push(blueprint(habitat, { doors: doorsOf(habitat.id), cameraOffset: CAMERA_OFFSET, corner: habitat.endeavor, onOpen, model: EMBLEMS[habitat.id] }));
 }
 document.querySelector('#endeavors').append(...blueprints);
@@ -341,7 +342,7 @@ renderer.domElement.addEventListener('pointerup', event => {
 });
 addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
-  if (!crafts.escape() && !planner.escape()) studio.escape();
+  if (!crafts.escape() && !planner.escape() && !grove.escape()) studio.escape();
 });
 controls.addEventListener('start', () => {
   if (dragging) flight = undefined;
@@ -395,7 +396,7 @@ function animate() {
   controls.update();
   requestAnimationFrame(animate);
   // The craft board covers the whole screen, so the scene rests while it's open.
-  if (crafts.covering() || planner.covering()) return;
+  if (crafts.covering() || planner.covering() || grove.covering()) return;
   view.subVectors(camera.position, controls.target).setY(0).normalize();
   for (const sector of sectors) {
     updateCutaway(sector.userData.room, view, delta);
@@ -410,6 +411,7 @@ requestAnimationFrame(animate);
 // Shared links straight to the Life Planner or an endeavor studio (handy for demos) open them over the scene.
 function followLink() {
   if (location.hash === '#life-planner') return planner.open();
+  if (location.hash === '#tree') return grove.open();
   const linked = location.hash.match(/^#endeavor-(.+)$/), sector = linked && sectors.find(entry => entry.userData.id === linked[1]);
   if (!sector || sector === expanded) return;
   if (expanded) studio.close();

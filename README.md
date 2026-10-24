@@ -25,6 +25,7 @@ npm run dev
 - Drag to orbit and scroll to zoom. Walls facing the camera fold down automatically, so the rooms stay visible from any angle.
 - Click a habitat, its label or its info card to expand its endeavor studio (see below); press Esc, the collapse button or the half-visible habitat to return.
 - Clicking the Idea Space blueprint opens **Crafts**, a translucent home card listing your crafts with preview thumbnails. A few sample crafts are seeded on the first visit.
+- Clicking the Tree blueprint opens the **Tree** (or go straight there with `/#tree`).
 - Clicking the Life Planner blueprint opens the **Life Planner** (or go straight there with `/#life-planner`).
 
 ## Craft sketch board
@@ -59,6 +60,15 @@ Each built habitat (Research, Workplace, Startup) holds one endeavor: every webp
 2. Click the toolbar button on any page: pick the endeavor, add a note, pin it, and any highlighted text comes along as a quote. **Alt+Shift+S** saves straight to your last endeavor, and right-click offers *Save page / link / highlight to Scaffold*.
 3. Saves wait in the extension (the badge shows how many) until a WorkStation tab is open on `localhost`; they then sync in and appear under **From Chrome**. To use a deployed WorkStation, add its address to `content_scripts.matches` in `extension/manifest.json`.
 
+## Tree
+
+A gamified tree that grows as you finish your Life Planner tasks, and the home of Filo.
+
+- **Growth:** every finished task adds leaves (Grind and Performance 3, Ideation and Leisure 2, Routine 1). The tree grows through eight stages, from Seed and Sprout up to Ancient tree, and gets a little bigger with every task in between, with a progress bar to the next stage. Finished ideation tasks blossom as flowers, and every day where everything got done ripens into a fruit. Once it is a sapling, the trunk has Filo's front door and lantern.
+- **Filo** lives at the foot of the tree. He tells you what is up next and how many leaves it grows, hops when the tree reaches a new stage, cheers with hearts when you tick something off, and naps on empty days. Tap him for a pat.
+- **Tasks:** today's tasks from the Life Planner, in time order, with the next one highlighted. Ticking them here ticks them in the planner too.
+- **Progress:** a last-7-days chart coloured by mode, plus leaves grown, ideas blossomed, days fully done and days you showed up. There are no streaks, and missing a day never shrinks the tree.
+
 ## Life Planner
 
 A day timeline with one lane per life aspect or project (Work, Side project, Learning, Health, Relationships, Home, plus any lane you add), built to weigh each day's workload before it happens. It ships with a sample week placed around today, and everything is saved in the browser.
@@ -76,6 +86,7 @@ A day timeline with one lane per life aspect or project (Work, Side project, Lea
 - `src/props.js` holds reusable people (posable rigs) and furniture.
 - `src/textures.js` draws canvas textures for floors, screens, boards, signs and live clocks.
 - `src/studio/` holds the endeavor studios: `platforms.js` (link labelling), `logos.js` (platform logos and kind symbols), `seed.js` (sample studios) and `studio.js`/`studio.css` (the screen and the extension bridge). `extension/` is the Scaffold Capture Chrome extension.
+- `src/grove/` holds the Tree view (`grove.js`, `grove.css`), which reuses Filo from `src/app/filo.js` and the planner's tasks.
 - `src/planner/` holds the Life Planner: `modes.js` (mode labeller, energy kit and icons), `plan.js` (prep placement, workload, brief and suggestions), `seed.js` (sample week) and `planner.js`/`planner.css` (the screen).
 - `src/crafts.js` runs the Crafts home card, `src/board.js` the sketch board and `src/craft-store.js` the IndexedDB storage. The markup is in `index.html`.
 - `src/kit.js` provides geometry and material helpers, plus `bake()`, which merges static meshes to keep draw calls low.

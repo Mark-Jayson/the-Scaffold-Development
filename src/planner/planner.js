@@ -689,6 +689,19 @@ function close() {
 }
 addEventListener('resize', () => !root.hidden && renderTimeline());
 
+// The Tree view reads the same tasks: what is planned, what is done, and ticking things off from there.
+export const plannerTasks = {
+  all: () => state.tasks,
+  today,
+  setDone(id, done) {
+    const task = taskOf(id);
+    if (!task) return;
+    task.done = done;
+    save();
+    if (!root.hidden) render();
+  },
+};
+
 export const planner = {
   open,
   // True while the planner covers the scene, so the 3D view can pause.
