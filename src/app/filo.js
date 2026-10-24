@@ -16,7 +16,6 @@ export function filoSvg(label = 'Filo') {
     <g class="filo-ear filo-ear-left"><path d="M34 52c-12-8-14-24-6-30 8-5 19 6 22 18z" fill="url(#${id}-fur)" stroke="#efd5b6" stroke-width="1.5"/><path d="M35 46c-6-5-8-13-4-16 4-2 10 4 12 10z" fill="#ffc6d3"/></g>
     <g class="filo-ear filo-ear-right"><path d="M106 52c12-8 14-24 6-30-8-5-19 6-22 18z" fill="url(#${id}-fur)" stroke="#efd5b6" stroke-width="1.5"/><path d="M105 46c6-5 8-13 4-16-4-2-10 4-12 10z" fill="#ffc6d3"/></g>
     <path class="filo-body" d="M70 36c30 0 44 22 44 48 0 26-18 40-44 40S26 110 26 84c0-26 14-48 44-48z" fill="url(#${id}-fur)" stroke="#efd5b6" stroke-width="1.5"/>
-    <ellipse cx="70" cy="109" rx="21" ry="11" fill="#ffffff" opacity=".6"/>
     <ellipse class="filo-arm" cx="30" cy="92" rx="7" ry="10" fill="#fbecd9" stroke="#efd5b6" stroke-width="1.2" transform="rotate(20 30 92)"/>
     <ellipse class="filo-arm filo-arm-right" cx="110" cy="92" rx="7" ry="10" fill="#fbecd9" stroke="#efd5b6" stroke-width="1.2" transform="rotate(-20 110 92)"/>
     <ellipse cx="54" cy="124" rx="10" ry="5" fill="#f3d9bb"/>

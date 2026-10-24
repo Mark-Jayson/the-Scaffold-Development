@@ -60,3 +60,15 @@ Everything is procedural geometry and canvas textures, so no 3D assets need to b
 - **Data:** the app starts with sample tasks, ideas and thoughts placed around today. Everything is saved in the browser's `localStorage`.
 
 Code: `app/index.html`, `src/app/main.js` (views and interactions), `src/app/sorter.js` (splitting, classifying and date/time parsing), `src/app/filo.js`, `src/app/seed.js` and `src/app/app.css`. The manifest and icons are in `public/app/`, and `vite.config.js` builds both pages.
+
+## Scaffold Focus (`/focus/`)
+
+A second version of the mobile app, redesigned around research on ADHD, attention and executive function. The research, its sources, and how each principle maps to a feature are in [`docs/adhd-design-research.md`](docs/adhd-design-research.md). Open it at `http://localhost:5173/focus/`.
+
+- **Now:** one task at a time, picked for the moment (a current or upcoming slot, your Top 3, your energy, or something carried over). It has a visual time ring, the first small step, a big **Start with just 2 minutes** button, and **Done** and **Not now**.
+- **Focus mode:** shows only the current step, a Time-Timer-style shrinking wedge with a halfway cue, and Filo working alongside as a body double. **Park a thought** sends stray ideas to the Inbox without leaving. When time's up you choose: keep going, take a break, done, or come back later.
+- **Plan:** a Top 3 cap, a timeline whose blocks are sized by duration with labelled free time, a "Now" line, and a "Maybe later" list with no dates.
+- **Kind by default:** nothing is red or "overdue". Older tasks are **carried over** with one-tap Today, Tomorrow or Later. Every change can be undone. There are no streaks; it counts the "days you showed up" instead.
+- **Make it yours:** settings for calm motion, sounds, larger text, focus length and when your day ends.
+
+Code: `focus/index.html` and `src/focus/` (`main.js`, `breakdown.js` for the step suggestions, `seed.js`, `focus.css`). It reuses Filo and the capture sorter from `src/app/`.
