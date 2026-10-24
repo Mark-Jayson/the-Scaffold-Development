@@ -1,5 +1,8 @@
 html,body,#scene{width:100%;height:100%;margin:0;overflow:hidden;background:#044794}canvas{display:block;width:100%;height:100%;cursor:grab}canvas:active{cursor:grabbing}
 .labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.labels.is-studio .habitat-label,.labels.is-studio .endeavor-card,.endeavors.is-studio,.endeavors.is-studio *{opacity:0;pointer-events:none!important}
+.endeavors,.brand{transition:opacity .3s}
+.brand.is-studio{opacity:0}
 .habitat-label{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 12px 6px;border:1px solid color-mix(in srgb,var(--accent) 55%,rgba(255,255,255,.45));border-radius:14px;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 24%,rgba(255,255,255,.14)),color-mix(in srgb,var(--accent) 12%,rgba(14,16,24,.22)));box-shadow:0 10px 30px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.35);backdrop-filter:blur(3px) saturate(1.4);-webkit-backdrop-filter:blur(3px) saturate(1.4);color:#fbfcff;font:inherit;white-space:nowrap;pointer-events:auto;cursor:pointer;will-change:transform;transition:opacity .25s,box-shadow .2s,background .2s;text-shadow:0 1px 6px rgba(0,0,0,.55)}
 .habitat-label strong{font:700 11px/1.1 system-ui,-apple-system,sans-serif;letter-spacing:.06em;text-transform:uppercase}
 .habitat-label span{font:500 9.5px/1.1 system-ui,-apple-system,sans-serif;letter-spacing:.03em;opacity:.82}

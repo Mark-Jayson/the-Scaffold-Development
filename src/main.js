@@ -5,7 +5,10 @@ import { HEX_RADIUS, FLOOR_Y, WALL_HEIGHT, platform, hexRoom, updateCutaway, bri
 import { sign, canvasTexture } from './textures.js';
 import { crafts } from './crafts.js';
 import { planner } from './planner/planner.js';
+import { studio } from './studio/studio.js';
+import { symbol, ago } from './studio/platforms.js';
 import { blueprint } from './blueprint.js';
+import { EMBLEMS } from './emblems.js';
 import tree from './habitats/tree.js';
 import studios from './habitats/studios.js';
 import startup from './habitats/startup.js';
@@ -39,8 +42,8 @@ const FURNISHING_SCALE = 1.15;
 const habitats = [
   { ...tree, slot: hexAt(-1, 0), endeavor: 'top-right', seed: 101 },
   { ...studios, slot: hexAt(0, 0), seed: 202 },
-  { ...startup, slot: hexAt(1, 0), seed: 303 },
-  { ...research, slot: hexAt(-1, 1), seed: 404 },
+  { ...startup, slot: hexAt(1, 0), cardSide: 'left', seed: 303 },
+  { ...research, slot: hexAt(-1, 1), cardSide: 'left', seed: 404 },
   { ...maker, slot: hexAt(0, 1), endeavor: 'bottom-right', opensCrafts: true, seed: 505 },
   { ...planning, slot: hexAt(1, 1), endeavor: 'bottom-left', opensPlanner: true, seed: 606 },
 ];
@@ -105,7 +108,7 @@ for (const habitat of habitats.filter(entry => entry.endeavor)) {
   scene.add(area);
   ghostAreas.push(area);
   const onOpen = habitat.opensCrafts ? () => crafts.open() : habitat.opensPlanner ? () => planner.open() : undefined;
-  blueprints.push(blueprint(habitat, { doors: doorsOf(habitat.id), cameraOffset: CAMERA_OFFSET, corner: habitat.endeavor, onOpen }));
+  blueprints.push(blueprint(habitat, { doors: doorsOf(habitat.id), cameraOffset: CAMERA_OFFSET, corner: habitat.endeavor, onOpen, model: EMBLEMS[habitat.id] }));
 }
 document.querySelector('#endeavors').append(...blueprints);
 
@@ -162,12 +165,24 @@ for (const habitat of built) {
     detail.textContent = habitat.caption;
     label.append(detail);
   }
-  label.addEventListener('click', () => focus(sector));
+  label.addEventListener('click', () => expand(sector));
   label.addEventListener('pointerenter', () => setHover(sector));
   label.addEventListener('pointerleave', () => setHover(undefined));
   labelHost.append(label);
 
-  sector.userData = { id: habitat.id, room, ticks, trim, label, hit, labelHeight: habitat.labelHeight ?? 14.5 };
+  // Collapsed view: a small card extends from the habitat with what is going on in its endeavor.
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = 'endeavor-card';
+  card.dataset.side = habitat.cardSide ?? 'right';
+  card.style.setProperty('--accent', hexColor(habitat.accent));
+  card.setAttribute('aria-label', `Open the ${habitat.name} endeavor`);
+  card.addEventListener('click', () => expand(sector));
+  card.addEventListener('pointerenter', () => setHover(sector));
+  card.addEventListener('pointerleave', () => setHover(undefined));
+  labelHost.append(card);
+
+  sector.userData = { id: habitat.id, name: habitat.name, room, ticks, trim, label, card, hit, labelHeight: habitat.labelHeight ?? 14.5 };
   scene.add(sector);
   sectors.push(sector);
 }
@@ -206,11 +221,29 @@ const earthGlow = new THREE.PointLight(0x7da8ff, 1.4, 48);
 earthGlow.position.copy(earth.position);
 scene.add(earthGlow);
 
+/* Endeavor studios: each built habitat holds one endeavor's links, docs and apps */
+const escapeHtml = text => String(text).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+studio.register(built.map(habitat => ({ id: habitat.id, name: habitat.name, accent: hexColor(habitat.accent) })));
+function renderCards() {
+  for (const sector of sectors) {
+    const summary = studio.summary(sector.userData.id);
+    if (!summary) continue;
+    const latest = summary.latest;
+    sector.userData.card.innerHTML = `
+      <span class="ec-row"><span class="ec-title">${escapeHtml(summary.title)}</span>${summary.fresh ? `<span class="ec-new">${summary.fresh} new</span>` : ''}</span>
+      <span class="ec-row"><span class="ec-symbols">${summary.platforms.map(key => symbol(key, 'sm')).join('')}</span><span class="ec-count">${summary.count} things · ${summary.pinned} pinned</span></span>
+      ${latest ? `<span class="ec-latest">${latest.opened ? 'Opened' : 'Saved'} <span>“${escapeHtml(latest.title)}”</span> · ${ago(latest.at)}</span>` : ''}`;
+  }
+}
+renderCards();
+studio.onChange(renderCards);
+setInterval(renderCards, 60000);
+
 /* Hover, focus and labels */
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const hitTargets = sectors.map(sector => sector.userData.hit);
-let hovered, focused, flight, pressedAt, dragging = false;
+let hovered, expanded, flight, pressedAt, dragging = false;
 function setHover(sector) {
   if (hovered === sector) return;
   if (hovered) {
@@ -234,17 +267,53 @@ function pick(event) {
 function flyTo(target, zoom) {
   flight = { from: controls.target.clone(), to: target.clone(), zoomFrom: camera.zoom, zoomTo: zoom, start: performance.now() };
 }
-function focus(sector) {
-  focused = sector;
-  sectors.forEach(item => item.userData.label.classList.toggle('is-dimmed', Boolean(sector) && item !== sector));
-  blueprints.forEach(item => item.classList.toggle('is-dimmed', Boolean(sector)));
-  flyTo(sector ? sector.position.clone().setY(FLOOR_Y) : CENTER, sector ? 2.3 : 1);
+// Expanded view: the studio fills the screen and the camera tucks this habitat, half visible, under its bottom edge.
+// Everything else in the scene steps aside until the studio collapses again.
+const backdrop = new Set([ground, groundShadow, earth, earthGlow, sunlight, sunlight.target]);
+let stashed = [], returnTo;
+const peekHeight = () => Math.max(170, sceneHost.clientHeight * 0.27);
+function expand(sector) {
+  if (expanded || !sector) return;
+  expanded = sector;
+  setHover(undefined);
+  returnTo = { target: controls.target.clone(), zoom: camera.zoom };
+  stashed = scene.children.filter(child => child.visible && child !== sector && !backdrop.has(child) && !child.isLight && !child.isPoints);
+  stashed.forEach(child => (child.visible = false));
+  controls.enabled = false;
+  labelHost.classList.add('is-studio');
+  document.querySelector('.brand').classList.add('is-studio');
+  document.querySelector('#endeavors').classList.add('is-studio');
+  // A small habitat, about a third of the screen wide (wider on phones, never taller than the strip under the panel),
+  // centred on the bottom edge so only its back half shows.
+  const frustum = camera.top - camera.bottom, width = camera.right - camera.left, height = sceneHost.clientHeight;
+  const share = width / frustum < 0.8 ? 0.62 : 0.34;
+  const zoom = Math.min((share * width) / (2 * HEX_RADIUS), (frustum * peekHeight()) / (10.5 * height));
+  // Screen-up in world space, from the camera's position (its matrices may not be fresh yet on a direct link).
+  const look = controls.target.clone().sub(camera.position).normalize();
+  const up = new THREE.Vector3(0, 1, 0).addScaledVector(look, -look.y).normalize();
+  flyTo(sector.position.clone().setY(FLOOR_Y).addScaledVector(up, frustum / (2 * zoom)), zoom);
+  studio.open(sector.userData.id, { onClose: collapse });
+  history.replaceState(null, '', `#endeavor-${sector.userData.id}`);
+}
+function collapse() {
+  if (!expanded) return;
+  expanded = undefined;
+  stashed.forEach(child => (child.visible = true));
+  stashed = [];
+  controls.enabled = true;
+  labelHost.classList.remove('is-studio');
+  document.querySelector('.brand').classList.remove('is-studio');
+  document.querySelector('#endeavors').classList.remove('is-studio');
+  flyTo(returnTo.target, returnTo.zoom);
+  if (location.hash.startsWith('#endeavor-')) history.replaceState(null, '', location.pathname + location.search);
 }
 function revealOnly(ghost) {
   ghostAreas.forEach(area => revealGhost(area.userData.ghost, area.userData.ghost === ghost));
 }
 renderer.domElement.addEventListener('pointermove', event => {
   const sector = pick(event);
+  // While a studio is open only its own habitat responds (a click collapses it).
+  if (expanded) return setHover(sector === expanded ? sector : undefined);
   setHover(sector);
   // A habitat in front wins; otherwise any placeholder under the pointer fades in.
   revealOnly(sector ? undefined : raycaster.intersectObjects(ghostAreas, false)[0]?.object.userData.ghost);
@@ -261,24 +330,34 @@ renderer.domElement.addEventListener('pointerup', event => {
   dragging = false;
   if (!pressedAt || Math.hypot(event.clientX - pressedAt[0], event.clientY - pressedAt[1]) > 5) return;
   const sector = pick(event);
-  focus(sector !== focused ? sector : undefined);
+  if (expanded) {
+    if (sector === expanded) studio.close();
+    return;
+  }
+  expand(sector);
 });
 addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
-  if (!crafts.escape() && !planner.escape()) focus(undefined);
+  if (!crafts.escape() && !planner.escape()) studio.escape();
 });
 controls.addEventListener('start', () => {
   if (dragging) flight = undefined;
 });
 
-const anchor = new THREE.Vector3();
+const anchor = new THREE.Vector3(), across = new THREE.Vector3(), away = new THREE.Vector3();
 function placeLabels() {
   const width = sceneHost.clientWidth, height = sceneHost.clientHeight;
+  // Cards hang off the habitat's left or right rim as the viewer currently sees it.
+  across.setFromMatrixColumn(camera.matrixWorld, 0).setY(0).normalize();
+  away.setFromMatrixColumn(camera.matrixWorld, 1).setY(0).normalize();
   for (const sector of sectors) {
     anchor.copy(sector.position);
     anchor.y += sector.userData.labelHeight;
     anchor.project(camera);
     sector.userData.label.style.transform = `translate(${((anchor.x + 1) / 2) * width}px, ${((1 - anchor.y) / 2) * height}px) translate(-50%, -100%)`;
+    const { card } = sector.userData, side = card.dataset.side === 'left' ? -1 : 1;
+    anchor.copy(sector.position).addScaledVector(across, side * (HEX_RADIUS - 1.6)).addScaledVector(away, 4).setY(FLOOR_Y + 1.5).project(camera);
+    card.style.transform = `translate(${((anchor.x + 1) / 2) * width + side * 44}px, ${((1 - anchor.y) / 2) * height}px) translate(${side < 0 ? '-100%' : '0'}, -50%)`;
   }
 }
 
@@ -325,5 +404,14 @@ function animate() {
   renderer.render(scene, camera);
 }
 requestAnimationFrame(animate);
-// A shared link straight to the Life Planner (handy for demos) opens it over the scene.
-if (location.hash === '#life-planner') planner.open();
+// Shared links straight to the Life Planner or an endeavor studio (handy for demos) open them over the scene.
+function followLink() {
+  if (location.hash === '#life-planner') return planner.open();
+  const linked = location.hash.match(/^#endeavor-(.+)$/), sector = linked && sectors.find(entry => entry.userData.id === linked[1]);
+  if (!sector || sector === expanded) return;
+  if (expanded) studio.close();
+  expand(sector);
+}
+followLink();
+addEventListener('hashchange', followLink);
+

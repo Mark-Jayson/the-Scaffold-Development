@@ -40,8 +40,8 @@ function triangles(root) {
   });
 }
 
-// Splits one mesh into touching pieces (merged meshes hold many) and drops those smaller than MIN_PIECE.
-function largePieces(points) {
+// Splits one mesh into touching pieces (merged meshes hold many) and drops those smaller than `minPiece`.
+function largePieces(points, minPiece) {
   const ids = new Map(), parent = [], vertex = new Int32Array(points.length / 3);
   const find = id => {
     while (parent[id] !== id) id = parent[id] = parent[parent[id]];
@@ -67,7 +67,7 @@ function largePieces(points) {
     boxes.get(root).expandByPoint(new THREE.Vector3().fromArray(points, index * 3));
   }
   const size = new THREE.Vector3();
-  const big = new Set([...boxes].filter(([, box]) => Math.max(...box.getSize(size).toArray()) >= MIN_PIECE).map(([root]) => root));
+  const big = new Set([...boxes].filter(([, box]) => Math.max(...box.getSize(size).toArray()) >= minPiece).map(([root]) => root));
   const kept = [];
   for (let index = 0; index < vertex.length; index += 3) if (big.has(find(vertex[index]))) kept.push(index);
   return { vertex, kept };
@@ -105,13 +105,15 @@ function edges(points, { vertex, kept }, toCamera, out) {
 const geometryOf = values => new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(values, 3));
 let renderer;
 
-/** Builds the blueprint figure for an Endeavor; `corner` pins it to the screen, `onOpen` makes it clickable. */
-export function blueprint(habitat, { doors, cameraOffset, corner, onOpen }) {
+/** Builds the blueprint figure for an Endeavor; `corner` pins it to the screen, `onOpen` makes it clickable.
+    `model(toCamera)` draws a stand-in object instead of the habitat itself, with every piece kept. */
+export function blueprint(habitat, { doors, cameraOffset, corner, onOpen, model }) {
   const toCamera = cameraOffset.clone().normalize();
-  const root = build(habitat, doors, cameraOffset.clone().setY(0).normalize());
+  const root = model ? model(toCamera) : build(habitat, doors, cameraOffset.clone().setY(0).normalize());
+  root.updateMatrixWorld(true);
   const lines = [], solid = [];
   for (const points of triangles(root)) {
-    const pieces = largePieces(points);
+    const pieces = largePieces(points, model ? 0 : MIN_PIECE);
     edges(points, pieces, toCamera, lines);
     for (const index of pieces.kept) for (let offset = 0; offset < 9; offset += 1) solid.push(points[index * 3 + offset]);
   }
@@ -127,8 +129,13 @@ export function blueprint(habitat, { doors, cameraOffset, corner, onOpen }) {
   camera.lookAt(center);
   camera.updateMatrixWorld();
   const bounds = new THREE.Box3().setFromPoints(Array.from({ length: lines.length / 3 }, (_, index) => new THREE.Vector3().fromArray(lines, index * 3).applyMatrix4(camera.matrixWorldInverse)));
-  const pad = radius * 0.03;
+  const pad = radius * (model ? 0.08 : 0.03);
   Object.assign(camera, { left: bounds.min.x - pad, right: bounds.max.x + pad, top: bounds.max.y + pad, bottom: bounds.min.y - pad });
+  // Objects sit in a frame as wide as the old hexagon drawings (about 5:4), centred, so tall ones do not grow taller.
+  if (model) {
+    const extra = (1.25 * (camera.top - camera.bottom) - (camera.right - camera.left)) / 2;
+    if (extra > 0) Object.assign(camera, { left: camera.left - extra, right: camera.right + extra });
+  }
   camera.updateProjectionMatrix();
 
   const figure = document.createElement(onOpen ? 'button' : 'div');

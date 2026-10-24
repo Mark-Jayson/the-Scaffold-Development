@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#044794" />
+    <!-- Lets the Scaffold Capture Chrome extension recognise this page and sync saved links into it. -->
+    <meta name="scaffold-workstation" content="1" />
     <title>Scaffold</title>
     <script type="importmap">
       { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
@@ -20,6 +22,7 @@
     <div id="labels" class="labels"></div>
 
     <section class="planner" id="planner" hidden aria-label="Life Planner"></section>
+    <section class="studio" id="studio" hidden aria-label="Endeavor studio"></section>
 
     <div class="crafts" id="crafts" hidden>
       <section class="crafts-card" role="dialog" aria-modal="true" aria-labelledby="crafts-title" tabindex="-1">

@@ -1,6 +1,6 @@
 # Moonbase Settlement Planner
 
-A browser based isometric lunar settlement built with Three.js and Vite. Three habitats sit in the middle of a spaced-out honeycomb. Neighbouring habitats are joined by slim railed walkways; doors that face an empty Endeavor cell lead out along blueprint-style paths to a blueprint landing at its centre, so every habitat connects to the others. The empty cells are abstract hexagon outlines that only fade in while the pointer is over them. Every room is open-topped, furnished and populated (furniture and people are drawn a little larger than life) so you can look straight in from the default view. The three **Endeavors** sit outside the scene as faint blueprint line drawings pinned to the screen: Tree at the top right, Life Planner at the bottom left and Idea Space at the bottom right. Their name is painted on the floor of one of the empty cells, so it moves with the view.
+A browser based isometric lunar settlement built with Three.js and Vite. Three habitats sit in the middle of a spaced-out honeycomb. Neighbouring habitats are joined by slim railed walkways; doors that face an empty Endeavor cell lead out along blueprint-style paths to a blueprint landing at its centre, so every habitat connects to the others. The empty cells are abstract hexagon outlines that only fade in while the pointer is over them. Every room is open-topped, furnished and populated (furniture and people are drawn a little larger than life) so you can look straight in from the default view. The three **Endeavors** sit outside the scene as faint blueprint line drawings pinned to the screen, each drawn as an object you can recognise at a glance: a tree for Tree (top right), a ring-bound desk calendar for Life Planner (bottom left) and a light bulb for Idea Space (bottom right). Their name is painted on the floor of one of the empty cells, so it moves with the view.
 
 ## Run locally
 
@@ -23,7 +23,7 @@ npm run dev
 ## Controls
 
 - Drag to orbit and scroll to zoom. Walls facing the camera fold down automatically, so the rooms stay visible from any angle.
-- Click a habitat or its label to fly in, and press Esc or click empty space to return to the overview.
+- Click a habitat, its label or its info card to expand its endeavor studio (see below); press Esc, the collapse button or the half-visible habitat to return.
 - Clicking the Idea Space blueprint opens **Crafts**, a translucent home card listing your crafts with preview thumbnails. A few sample crafts are seeded on the first visit.
 - Clicking the Life Planner blueprint opens the **Life Planner** (or go straight there with `/#life-planner`).
 
@@ -37,6 +37,26 @@ Opening or creating a craft shows a #044794 dot-grid sketch board.
 - **Canvas:** scroll or Space-drag to pan, and pinch or ⌘-scroll to zoom. Double-click empty space to type and double-click text or notes to edit them. Corner handles resize items and Shift keeps proportions. Drop or paste pictures anywhere; pasting a URL makes a link card.
 - **Shortcuts:** ⌘Z / ⇧⌘Z, ⌘D, ⌘A, ⌘C / ⌘V, Delete and the arrow keys. Esc steps back from editing, to selection, to the crafts list.
 - **Storage:** the craft list sits in `localStorage`. Board contents and pictures are in IndexedDB, saved automatically per browser.
+
+## Endeavor studios and Scaffold Capture
+
+Each built habitat (Research, Workplace, Startup) holds one endeavor: every webpage, doc, design, repo and app it runs on, in one studio.
+
+- **Collapsed** (the WorkStation): an info card hangs off each habitat with the endeavor's name, the platforms in play, counts, new captures and the latest thing that happened.
+- **Expanded** (click the habitat): a full-screen studio, with the habitat shrunk and half tucked under the bottom edge. Links open as `/#endeavor-research`, `/#endeavor-studios` or `/#endeavor-startup`. The studio is organised as:
+  - **Header:** editable name and goal, search, Chrome connection, Add link, and counts.
+  - **Platform dock:** every platform in this endeavor with its count; tap one to filter.
+  - **Working set:** pinned cards for what you are on right now, with notes and when you last opened them.
+  - **Library:** everything, filtered by kind (Docs, Design, Code, Apps & tools, Webpages, Media); pin, move to another endeavor or remove.
+  - **From Chrome:** new captures waiting to be sorted (Keep, Pin, Move, Remove).
+  - **What's going on:** an activity feed of saves, opens, pins and moves.
+- Links are labelled by platform (Google Docs/Sheets/Slides/Drive, Notion, Figma, Miro, Canva, GitHub, GitLab, Vercel, Linear, Jira, Slack, Claude, YouTube, Loom and more). Sample studios are seeded; their doc and design links are placeholders.
+
+**Scaffold Capture** (`extension/`) is a Chrome extension (Manifest V3) that saves the page you are on into an endeavor:
+
+1. Open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked** and pick the `extension` folder.
+2. Click the toolbar button on any page: pick the endeavor, add a note, pin it, and any highlighted text comes along as a quote. **Alt+Shift+S** saves straight to your last endeavor, and right-click offers *Save page / link / highlight to Scaffold*.
+3. Saves wait in the extension (the badge shows how many) until a WorkStation tab is open on `localhost`; they then sync in and appear under **From Chrome**. To use a deployed WorkStation, add its address to `content_scripts.matches` in `extension/manifest.json`.
 
 ## Life Planner
 
@@ -54,10 +74,12 @@ A day timeline with one lane per life aspect or project (Work, Side project, Lea
 - `src/room.js` builds the hex platform, floor, walls with doorways, wall fold-away, solid walkways, blueprint paths and landings, the hover-revealed placeholder outlines, and `enlarge()`, which scales furnishings up while keeping them inside the walls.
 - `src/props.js` holds reusable people (posable rigs) and furniture.
 - `src/textures.js` draws canvas textures for floors, screens, boards, signs and live clocks.
+- `src/studio/` holds the endeavor studios: `platforms.js` (link labelling and symbols), `seed.js` (sample studios) and `studio.js`/`studio.css` (the screen and the extension bridge). `extension/` is the Scaffold Capture Chrome extension.
 - `src/planner/` holds the Life Planner: `modes.js` (mode labeller, energy kit and icons), `plan.js` (prep placement, workload, brief and suggestions), `seed.js` (sample week) and `planner.js`/`planner.css` (the screen).
 - `src/crafts.js` runs the Crafts home card, `src/board.js` the sketch board and `src/craft-store.js` the IndexedDB storage. The markup is in `index.html`.
 - `src/kit.js` provides geometry and material helpers, plus `bake()`, which merges static meshes to keep draw calls low.
-- `src/blueprint.js` turns an Endeavor's habitat into blueprint line art (its larger pieces, traced along creases and silhouettes with hidden lines removed).
+- `src/emblems.js` builds the tree, light bulb and calendar objects for the Endeavors.
+- `src/blueprint.js` turns an Endeavor's object (or a habitat) into blueprint line art (its larger pieces, traced along creases and silhouettes with hidden lines removed).
 - `src/habitats/*.js` contains one builder per habitat.
 
 Everything is procedural geometry and canvas textures, so no 3D assets need to be downloaded.

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Save to Scaffold</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="top">
+      <img src="icons/icon-32.png" alt="" width="22" height="22" />
+      <h1>Save to Scaffold</h1>
+      <span class="sync" role="status"></span>
+    </header>
+
+    <form class="capture" novalidate>
+      <div class="page">
+        <span class="symbol" aria-hidden="true"></span>
+        <div class="page-text">
+          <input name="title" aria-label="Title" autocomplete="off" />
+          <small class="where"></small>
+        </div>
+      </div>
+      <blockquote class="quote" hidden></blockquote>
+
+      <fieldset class="endeavors"><legend>Endeavor</legend></fieldset>
+
+      <label class="field"><span>Why it matters (optional)</span><input name="note" placeholder="e.g. Use the pricing table in the deck" autocomplete="off" /></label>
+      <label class="pin"><input type="checkbox" name="pinned" /> Pin to the working set</label>
+
+      <button type="submit" class="save">Save</button>
+      <p class="unsavable" hidden>Chrome does not let extensions save this kind of page. Try it on a website, doc or app.</p>
+    </form>
+
+    <section class="done" hidden>
+      <p class="done-title"></p>
+      <div class="done-actions">
+        <button type="button" class="open">Open the studio</button>
+        <button type="button" class="undo">Undo</button>
+      </div>
+    </section>
+
+    <section class="recent">
+      <h2>Recently saved</h2>
+      <ol class="recent-list"></ol>
+    </section>
+    <footer><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> saves without opening this · right-click any page or link too</footer>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
