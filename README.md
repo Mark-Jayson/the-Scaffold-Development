@@ -1,6 +1,6 @@
 # Moonbase Settlement Planner
 
-A browser based isometric lunar settlement built with Three.js and Vite. A compact honeycomb of three habitats sits in the middle, with abstract hexagon outlines marking the empty cells. Three smaller, free-floating **Endeavors** (Tree, Idea Space and Life Planner) surround it. Every room is open-topped, furnished and populated so you can look straight in.
+A browser based isometric lunar settlement built with Three.js and Vite. Three habitats sit in the middle of a spaced-out honeycomb. Neighbouring habitats are joined by slim railed walkways; doors that face an empty Endeavor cell lead out along blueprint-style paths to a blueprint landing at its centre, so every habitat connects to the others. The empty cells are abstract hexagon outlines that only fade in while the pointer is over them. Every room is open-topped, furnished and populated (furniture and people are drawn a little larger than life) so you can look straight in from the default view. The three **Endeavors** sit outside the scene as faint blueprint line drawings pinned to the screen: Tree at the top right, Life Planner at the bottom left and Idea Space at the bottom right. Their name is painted on the floor of one of the empty cells, so it moves with the view.
 
 ## Run locally
 
@@ -23,8 +23,9 @@ npm run dev
 ## Controls
 
 - Drag to orbit and scroll to zoom. Walls facing the camera fold down automatically, so the rooms stay visible from any angle.
-- Click a habitat, an Endeavor or its label to fly in, and press Esc or click empty space to return to the overview.
-- Clicking the Idea Space also opens **Crafts**, a translucent home card listing your crafts with preview thumbnails. A few sample crafts are seeded on the first visit.
+- Click a habitat or its label to fly in, and press Esc or click empty space to return to the overview.
+- Clicking the Idea Space blueprint opens **Crafts**, a translucent home card listing your crafts with preview thumbnails. A few sample crafts are seeded on the first visit.
+- Clicking the Life Planner blueprint opens the **Life Planner** (or go straight there with `/#life-planner`).
 
 ## Craft sketch board
 
@@ -37,14 +38,26 @@ Opening or creating a craft shows a #044794 dot-grid sketch board.
 - **Shortcuts:** ⌘Z / ⇧⌘Z, ⌘D, ⌘A, ⌘C / ⌘V, Delete and the arrow keys. Esc steps back from editing, to selection, to the crafts list.
 - **Storage:** the craft list sits in `localStorage`. Board contents and pictures are in IndexedDB, saved automatically per browser.
 
+## Life Planner
+
+A day timeline with one lane per life aspect or project (Work, Side project, Learning, Health, Relationships, Home, plus any lane you add), built to weigh each day's workload before it happens. It ships with a sample week placed around today, and everything is saved in the browser.
+
+- **Mode labels:** every task is labelled **Grind** (or **All-nighter** when it runs past midnight), **Ideation**, **Performance**, **Leisure** or **Routine**, with a confidence score and the cues behind it. The labeller is a transparent keyword and timing heuristic standing in for a model; you can overrule it per task.
+- **Energy prep:** for each mode the planner drops small supports into an Energy lane, in the free time next to the task: water, walks, timed scroll breaks, an inspiration scroll before ideation, rehearsal, a snack, box breathing and a motivational quote before a performance, stretch breaks during long grinds, a power nap and a wind-down around an all-nighter. Tick them off or skip them; the switch in the header turns them off.
+- **Workload:** a load strip shows effort through the day, each day in the week strip has a load meter (light, balanced, heavy, overloaded), and the side panel shows a gauge, time by mode and an AI day brief.
+- **Balancing:** overloaded days suggest one task to move to a lighter day, double-booked time gets the nearest free slot, back-to-back heavy blocks get a buffer, heavy days without rest get a leisure block, and an all-nighter before an early start is flagged. Every suggestion applies in one tap and can be undone.
+- **Editing:** drag a block to move it (also across lanes), drag its right edge to resize, use the arrow keys (Shift to resize) on a focused block, click empty track space to plan a task there, or use **Plan a task**, which previews the AI label and the effect on the day's load and offers a lighter day when it would tip over.
+
 ## Code layout
 
 - `src/main.js` sets up the scene, layout, labels, interaction and animation loop.
-- `src/room.js` builds the hex platform, floor, walls with doorways, wall fold-away and connecting bridges.
+- `src/room.js` builds the hex platform, floor, walls with doorways, wall fold-away, solid walkways, blueprint paths and landings, the hover-revealed placeholder outlines, and `enlarge()`, which scales furnishings up while keeping them inside the walls.
 - `src/props.js` holds reusable people (posable rigs) and furniture.
 - `src/textures.js` draws canvas textures for floors, screens, boards, signs and live clocks.
+- `src/planner/` holds the Life Planner: `modes.js` (mode labeller, energy kit and icons), `plan.js` (prep placement, workload, brief and suggestions), `seed.js` (sample week) and `planner.js`/`planner.css` (the screen).
 - `src/crafts.js` runs the Crafts home card, `src/board.js` the sketch board and `src/craft-store.js` the IndexedDB storage. The markup is in `index.html`.
 - `src/kit.js` provides geometry and material helpers, plus `bake()`, which merges static meshes to keep draw calls low.
+- `src/blueprint.js` turns an Endeavor's habitat into blueprint line art (its larger pieces, traced along creases and silhouettes with hidden lines removed).
 - `src/habitats/*.js` contains one builder per habitat.
 
 Everything is procedural geometry and canvas textures, so no 3D assets need to be downloaded.

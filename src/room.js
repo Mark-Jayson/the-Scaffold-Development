@@ -174,50 +174,131 @@ export function updateCutaway(room, view, delta) {
   }
 }
 
-/* Abstract outline marking an empty slot in the honeycomb */
+/* Abstract outline marking an empty slot in the honeycomb; `core: false` leaves the middle clear for a floor label.
+   Placeholders stay hidden until `revealGhost` asks for one, then fade in and out. */
 const ghostLine = opacity => new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity, depthWrite: false });
-const GHOST = {
-  faint: ghostLine(0.16), soft: ghostLine(0.4), accent: ghostLine(0.85),
-  dashed: new THREE.LineDashedMaterial({ color: 0xffffff, transparent: true, opacity: 0.32, dashSize: 0.7, gapSize: 0.55, depthWrite: false }),
-};
+const ghostDash = (opacity, dashSize, gapSize) => new THREE.LineDashedMaterial({ color: 0xffffff, transparent: true, opacity, dashSize, gapSize, depthWrite: false });
 const corners = radius => Array.from({ length: 7 }, (_, index) => new THREE.Vector3(Math.sin((index + 0.5) * Math.PI / 3) * radius, 0, Math.cos((index + 0.5) * Math.PI / 3) * radius));
-export function ghostHex(parent, position) {
-  const group = node(parent, position.x, 1.6, position.z);
-  const trace = (points, material, Kind = THREE.Line) => {
-    const line = new Kind(new THREE.BufferGeometry().setFromPoints(points), material);
-    if (material.isLineDashedMaterial) line.computeLineDistances();
-    group.add(line);
-  };
+const traceInto = group => (points, material, Kind = THREE.Line) => {
+  const line = new Kind(new THREE.BufferGeometry().setFromPoints(points), material);
+  if (material.isLineDashedMaterial) line.computeLineDistances();
+  group.add(line);
+};
+const ghosts = [];
+export function ghostHex(parent, position, { core: withCore = true } = {}) {
+  const group = node(parent, position.x, 1.6, position.z), trace = traceInto(group);
+  const look = { faint: ghostLine(0), soft: ghostLine(0), accent: ghostLine(0), dashed: ghostDash(0, 0.7, 0.55) };
   const outer = corners(HEX_RADIUS + 0.3), wall = corners(CORNER_RADIUS), core = corners(4.2);
-  trace(outer, GHOST.soft);
-  trace(corners(HEX_RADIUS - 0.9), GHOST.faint);
-  trace(wall, GHOST.dashed);
-  trace(core, GHOST.faint);
+  trace(outer, look.soft);
+  trace(corners(HEX_RADIUS - 0.9), look.faint);
+  trace(wall, look.dashed);
   const brackets = [], spokes = [];
   for (let corner = 0; corner < 6; corner += 1) {
     for (const neighbour of [outer[(corner + 5) % 6], outer[corner + 1]]) brackets.push(outer[corner], outer[corner].clone().lerp(neighbour, 0.14));
     spokes.push(core[corner], wall[corner]);
   }
-  trace(brackets, GHOST.accent, THREE.LineSegments);
-  trace(spokes, GHOST.faint, THREE.LineSegments);
-  trace([new THREE.Vector3(-0.8, 0, 0), new THREE.Vector3(0.8, 0, 0), new THREE.Vector3(0, 0, -0.8), new THREE.Vector3(0, 0, 0.8)], GHOST.soft, THREE.LineSegments);
+  trace(brackets, look.accent, THREE.LineSegments);
+  if (withCore) {
+    trace(core, look.faint);
+    trace(spokes, look.faint, THREE.LineSegments);
+    trace([new THREE.Vector3(-0.8, 0, 0), new THREE.Vector3(0.8, 0, 0), new THREE.Vector3(0, 0, -0.8), new THREE.Vector3(0, 0, 0.8)], look.soft, THREE.LineSegments);
+  }
+  group.visible = false;
+  group.userData.ghost = { look, reveal: 0, target: 0 };
+  ghosts.push(group);
   return group;
 }
-export const pulseGhosts = time => {
-  GHOST.accent.opacity = 0.62 + Math.sin(time * 1.4) * 0.22;
+export const revealGhost = (group, on) => {
+  group.userData.ghost.target = on ? 1 : 0;
+};
+// Fades each placeholder toward its target while the accent corners keep breathing.
+export function updateGhosts(time, delta) {
+  for (const group of ghosts) {
+    const state = group.userData.ghost, { faint, soft, accent, dashed } = state.look;
+    state.reveal = damp(state.reveal, state.target, 7, delta);
+    group.visible = state.reveal > 0.01;
+    faint.opacity = 0.16 * state.reveal;
+    soft.opacity = 0.4 * state.reveal;
+    dashed.opacity = 0.32 * state.reveal;
+    accent.opacity = (0.62 + Math.sin(time * 1.4) * 0.22) * state.reveal;
+  }
+}
+
+// Walkways run along the line joining two cell centres. Each end says how far from its centre the deck reaches
+// (through a doorway, or onto a landing) and where the open stretch begins.
+const WALK_WIDTH = DOOR_WIDTH / 2;
+export const ROOM_END = { reach: INNER, clear: APOTHEM + THICK / 2 };
+const HUB_RADIUS = 1.8, HUB_APOTHEM = HUB_RADIUS * Math.cos(Math.PI / 6);
+export const HUB_END = { reach: HUB_APOTHEM, clear: HUB_APOTHEM };
+const run = (parent, from, to, y) => {
+  const dx = to.x - from.x, dz = to.z - from.z;
+  return { group: node(parent, from.x, y, from.z, Math.atan2(dx, dz)), distance: Math.hypot(dx, dz) };
 };
 
-export function bridge(parent, from, to, accent) {
-  const dx = to.x - from.x, dz = to.z - from.z, distance = Math.hypot(dx, dz);
-  const group = node(parent, (from.x + to.x) / 2, FLOOR_Y, (from.z + to.z) / 2, Math.atan2(dx, dz));
-  const length = distance - 2 * INNER, gap = distance - 2 * (APOTHEM + THICK / 2);
-  block(group, DOOR_WIDTH - 0.12, 0.24, length, mat(0xd1d0c8), 0, -0.24, 0);
-  flat(group, 0.22, gap, mat(accent, { emissive: accent, emissiveIntensity: 0.45 }), 0, 0.006, 0);
+// Solid railed walkway, only ever between two built habitats.
+export function bridge(parent, from, to, accent, [start, end] = [ROOM_END, ROOM_END]) {
+  const { group, distance } = run(parent, from, to, FLOOR_Y);
+  const deckFrom = start.reach, deckTo = distance - end.reach, openFrom = start.clear, openTo = distance - end.clear;
+  const open = openTo - openFrom, middle = (openFrom + openTo) / 2, posts = Math.max(1, Math.round(open / 3.2));
+  block(group, WALK_WIDTH, 0.2, deckTo - deckFrom, mat(0xd1d0c8), 0, -0.2, (deckFrom + deckTo) / 2);
+  flat(group, 0.12, open, mat(accent, { emissive: accent, emissiveIntensity: 0.45 }), 0, 0.006, middle);
   for (const side of [-1, 1]) {
-    block(group, 0.05, 1.05, gap, glass(0xd9f1ff, 0.22), side * (DOOR_WIDTH / 2 - 0.08), 0, 0);
-    block(group, 0.08, 0.06, gap, C.metal, side * (DOOR_WIDTH / 2 - 0.08), 1.05, 0);
-    for (const end of [-1, 1]) block(group, 0.1, 1.1, 0.1, C.metal, side * (DOOR_WIDTH / 2 - 0.08), 0, end * (gap / 2 - 0.05));
+    const x = side * (WALK_WIDTH / 2 - 0.05);
+    block(group, 0.04, 0.95, open, glass(0xd9f1ff, 0.22), x, 0, middle);
+    block(group, 0.06, 0.05, open, C.metal, x, 0.95, middle);
+    for (let index = 0; index <= posts; index += 1) block(group, 0.08, 1.0, 0.08, C.metal, x, 0, openFrom + 0.04 + index * (open - 0.08) / posts);
   }
-  block(group, 1.2, 0.5, gap + 1.4, C.dark, 0, -0.74, 0);
+  block(group, 0.6, 0.35, open + 1.4, C.dark, 0, -0.55, middle);
   return bake(group);
+}
+
+// Blueprint walkway for anything that touches an empty Endeavor cell: its outline and a dashed centre line.
+const PATH = { edge: ghostLine(0.4), centre: ghostDash(0.3, 0.45, 0.35) };
+export function ghostPath(parent, from, to, [start, end] = [ROOM_END, ROOM_END]) {
+  const { group, distance } = run(parent, from, to, FLOOR_Y + 0.02), trace = traceInto(group);
+  const near = start.clear, far = distance - end.clear, half = WALK_WIDTH / 2, at = (x, z) => new THREE.Vector3(x, 0, z);
+  trace([at(-half, near), at(-half, far), at(half, near), at(half, far), at(-half, near), at(half, near), at(-half, far), at(half, far)], PATH.edge, THREE.LineSegments);
+  trace([at(0, near), at(0, far)], PATH.centre);
+  return group;
+}
+
+// Blueprint landing in the middle of an empty Endeavor cell, where its walkways meet.
+export function ghostLanding(parent, position) {
+  const group = node(parent, position.x, FLOOR_Y + 0.02, position.z), trace = traceInto(group);
+  trace(corners(HUB_RADIUS), PATH.edge);
+  trace(corners(HUB_RADIUS * 0.55), PATH.centre);
+  return group;
+}
+
+// Grows each furnishing about the middle of its footprint (heights scale from the floor, so things stay stacked),
+// then nudges it back inside the walls. Anything that still would not fit, like a wall-long counter, keeps its size.
+const NORMALS = Array.from({ length: 6 }, (_, side) => sideNormal(side));
+const reach = (box, [nx, nz]) => Math.max(box.min.x * nx, box.max.x * nx) + Math.max(box.min.z * nz, box.max.z * nz);
+export function enlarge(content, items, factor, { ceiling = Infinity } = {}) {
+  // Refresh from the top so the habitat's own placement is included, not just the room's local layout.
+  content.updateWorldMatrix(true, true);
+  const origin = new THREE.Vector3().setFromMatrixPosition(content.matrixWorld);
+  const box = new THREE.Box3(), pivot = new THREE.Vector3(), shift = new THREE.Vector3(), position = new THREE.Vector3();
+  for (const item of items) {
+    box.setFromObject(item);
+    if (box.isEmpty()) continue;
+    box.translate(position.copy(origin).negate());
+    pivot.set((box.min.x + box.max.x) / 2, 0, (box.min.z + box.max.z) / 2);
+    const grown = box.clone().translate(position.copy(pivot).negate());
+    grown.min.multiplyScalar(factor);
+    grown.max.multiplyScalar(factor);
+    grown.translate(pivot);
+    const limits = NORMALS.map(normal => Math.max(INNER - 0.02, reach(box, normal)));
+    shift.set(0, 0, 0);
+    NORMALS.forEach((normal, side) => {
+      const over = reach(grown, normal) - limits[side];
+      if (over > 0) shift.add(position.set(-normal[0] * over, 0, -normal[1] * over));
+    });
+    grown.translate(shift);
+    if (NORMALS.some((normal, side) => reach(grown, normal) > limits[side] + 0.05) || grown.max.y > Math.max(ceiling, box.max.y)) continue;
+    pivot.add(origin);
+    item.getWorldPosition(position).sub(pivot).multiplyScalar(factor).add(pivot).add(shift);
+    item.position.copy(item.parent.worldToLocal(position));
+    item.scale.multiplyScalar(factor);
+  }
 }

@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mat, screen, node, bake, rng } from './kit.js';
-import { HEX_RADIUS, FLOOR_Y, platform, hexRoom, updateCutaway, bridge, ghostHex, pulseGhosts } from './room.js';
-import { sign } from './textures.js';
+import { HEX_RADIUS, FLOOR_Y, WALL_HEIGHT, platform, hexRoom, updateCutaway, bridge, ghostPath, ghostLanding, ROOM_END, HUB_END, enlarge, ghostHex, revealGhost, updateGhosts } from './room.js';
+import { sign, canvasTexture } from './textures.js';
 import { crafts } from './crafts.js';
+import { planner } from './planner/planner.js';
+import { blueprint } from './blueprint.js';
 import tree from './habitats/tree.js';
 import studios from './habitats/studios.js';
 import startup from './habitats/startup.js';
@@ -18,8 +20,10 @@ const BACKDROP = 0x044794;
 scene.background = new THREE.Color(BACKDROP);
 scene.fog = new THREE.FogExp2(BACKDROP, 0.0015);
 
-const HEX_STEP_X = (HEX_RADIUS + 0.32) * 1.5;
-const HEX_STEP_Z = Math.sqrt(3) * (HEX_RADIUS + 0.32);
+// Cells sit GAP apart so the walkways between them read as real paths.
+const GAP = 10;
+const HEX_STEP_Z = Math.sqrt(3) * (HEX_RADIUS + 0.32) + GAP;
+const HEX_STEP_X = HEX_STEP_Z * Math.sqrt(3) / 2;
 const hexAt = (column, row) => new THREE.Vector3(HEX_STEP_X * column, 0, HEX_STEP_Z * (row + column / 2));
 // Looking square-on to a hex edge keeps all three back walls of every room in view.
 const VIEW_ANGLE = Math.PI / 3;
@@ -27,13 +31,23 @@ const CAMERA_OFFSET = new THREE.Vector3(Math.sin(VIEW_ANGLE) * 154, 124, Math.co
 // Ground directions that read as screen-right and toward-the-viewer in the default view.
 const SCREEN_RIGHT = new THREE.Vector3(Math.cos(VIEW_ANGLE), 0, -Math.sin(VIEW_ANGLE));
 const SCREEN_NEAR = new THREE.Vector3(Math.sin(VIEW_ANGLE), 0, Math.cos(VIEW_ANGLE));
-const CLUSTER = new THREE.Vector3(0, 0, HEX_STEP_Z / 2);
-const onScreen = (right, near) => CLUSTER.clone().addScaledVector(SCREEN_RIGHT, right).addScaledVector(SCREEN_NEAR, near);
-const CENTER = onScreen(0, -10).setY(FLOOR_Y);
-const ENDEAVOR_SCALE = 0.55;
-// The honeycomb sits a little right of centre; `slotAt` is where each of its cells lands.
-const slotAt = (column, row) => hexAt(column, row).addScaledVector(SCREEN_RIGHT, 6);
 const SUN = new THREE.Vector3(-65, 100, 75);
+// Furniture and people are drawn a little larger than life so interiors read from the overview.
+const FURNISHING_SCALE = 1.15;
+
+// Endeavors live outside the scene as blueprints pinned to a screen corner; `slot` is the empty cell each one left behind.
+const habitats = [
+  { ...tree, slot: hexAt(-1, 0), endeavor: 'top-right', seed: 101 },
+  { ...studios, slot: hexAt(0, 0), seed: 202 },
+  { ...startup, slot: hexAt(1, 0), seed: 303 },
+  { ...research, slot: hexAt(-1, 1), seed: 404 },
+  { ...maker, slot: hexAt(0, 1), endeavor: 'bottom-right', opensCrafts: true, seed: 505 },
+  { ...planning, slot: hexAt(1, 1), endeavor: 'bottom-left', opensPlanner: true, seed: 606 },
+];
+const built = habitats.filter(habitat => !habitat.endeavor);
+// The default view centres on the whole network of cells, nudged so the floor label stays in frame and Research clears the logo.
+const CENTER = habitats.reduce((sum, habitat) => sum.add(habitat.slot), new THREE.Vector3()).divideScalar(habitats.length)
+  .addScaledVector(SCREEN_NEAR, 2).addScaledVector(SCREEN_RIGHT, -2).setY(FLOOR_Y);
 
 const camera = new THREE.OrthographicCamera(-65, 65, 44, -44, 0.1, 1000);
 camera.position.copy(CENTER).add(CAMERA_OFFSET);
@@ -68,36 +82,64 @@ sunlight.shadow.bias = -0.0004;
 sunlight.shadow.normalBias = 0.03;
 scene.add(sunlight, sunlight.target);
 
-// Endeavors float apart from the honeycomb at a smaller scale; `slot` is the cell each one left behind.
-const habitats = [
-  { ...tree, slot: slotAt(-1, 0), pos: onScreen(4, -71), endeavor: true, seed: 101 },
-  { ...studios, slot: slotAt(0, 0), seed: 202 },
-  { ...startup, slot: slotAt(1, 0), seed: 303 },
-  { ...research, slot: slotAt(-1, 1), seed: 404 },
-  { ...maker, slot: slotAt(0, 1), pos: onScreen(-47, 35), endeavor: true, opensCrafts: true, seed: 505 },
-  { ...planning, slot: slotAt(1, 1), pos: onScreen(51, 40), endeavor: true, seed: 606 },
-];
 const seams = [['tree', 'studios'], ['studios', 'startup'], ['tree', 'research'], ['studios', 'maker'], ['startup', 'planning'], ['research', 'maker'], ['maker', 'planning']];
 const byId = id => habitats.find(habitat => habitat.id === id);
-// Doorways follow the original honeycomb so every interior still lines up; only cluster neighbours get bridges.
+// Doorways follow the original honeycomb so every interior still lines up; each one opens onto a walkway.
 const sideToward = (from, to) => (Math.round(Math.atan2(to.x - from.x, to.z - from.z) / (Math.PI / 3)) + 6) % 6;
 const doorsOf = id => seams.filter(pair => pair.includes(id)).map(([a, b]) => (a === id ? sideToward(byId(a).slot, byId(b).slot) : sideToward(byId(b).slot, byId(a).slot)));
-const ENDEAVORS_ANCHOR = onScreen(0, 64);
 const exitSign = screen(sign('EXIT ➜', '#0f7a3d', '#ffffff', 256, 80, 46), { emissiveIntensity: 0.9 });
 const hexColor = color => `#${color.toString(16).padStart(6, '0')}`;
 
+// "Endeavors" is painted on the floor of the most open empty cell, so it orbits and zooms with the scene.
+const TITLE_CELL = 'planning';
+const blueprints = [], ghostAreas = [];
+for (const habitat of habitats.filter(entry => entry.endeavor)) {
+  const ghost = ghostHex(scene, habitat.slot, { core: habitat.id !== TITLE_CELL });
+  ghostLanding(scene, habitat.slot);
+  // An invisible floor-level hex the pointer can find, so the placeholder shows itself on hover.
+  const area = new THREE.Mesh(new THREE.CylinderGeometry(HEX_RADIUS + 0.3, HEX_RADIUS + 0.3, 0.4, 6), new THREE.MeshBasicMaterial());
+  area.rotation.y = Math.PI / 6;
+  area.position.copy(habitat.slot).setY(1.6);
+  area.visible = false;
+  area.userData.ghost = ghost;
+  scene.add(area);
+  ghostAreas.push(area);
+  const onOpen = habitat.opensCrafts ? () => crafts.open() : habitat.opensPlanner ? () => planner.open() : undefined;
+  blueprints.push(blueprint(habitat, { doors: doorsOf(habitat.id), cameraOffset: CAMERA_OFFSET, corner: habitat.endeavor, onOpen }));
+}
+document.querySelector('#endeavors').append(...blueprints);
+
+const titleTexture = canvasTexture(1024, 200, (ctx, width, height) => {
+  ctx.font = '300 100px Montserrat, system-ui, sans-serif';
+  ctx.letterSpacing = '0.12em';
+  ctx.font = `300 ${Math.floor(100 * (width * 0.94) / ctx.measureText('Endeavors').width)}px Montserrat, system-ui, sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Endeavors', width / 2, height / 2);
+});
+document.fonts?.load('300 100px Montserrat').then(() => titleTexture.redraw());
+const endeavorsTitle = new THREE.Mesh(new THREE.PlaneGeometry(25, 25 * 200 / 1024), new THREE.MeshBasicMaterial({ map: titleTexture, transparent: true, depthWrite: false, toneMapped: false, fog: false }));
+// Lies flat and runs along the default view's screen-right, so it reads left to right before any orbiting.
+// It sits just in front of the landing, clear of the walkways arriving from behind.
+endeavorsTitle.rotation.set(-Math.PI / 2, VIEW_ANGLE, 0, 'YXZ');
+endeavorsTitle.position.copy(byId(TITLE_CELL).slot).addScaledVector(SCREEN_NEAR, 4.6).setY(1.62);
+scene.add(endeavorsTitle);
+
 const sectors = [];
-for (const habitat of habitats) {
-  const sector = new THREE.Group(), scale = habitat.endeavor ? ENDEAVOR_SCALE : 1;
-  sector.position.copy(habitat.pos ?? habitat.slot);
-  sector.scale.setScalar(scale);
+for (const habitat of built) {
+  const sector = new THREE.Group();
+  sector.position.copy(habitat.slot);
   const trim = mat(habitat.accent, { emissive: habitat.accent, emissiveIntensity: 0.35, roughness: 0.5 });
-  const shell = habitat.endeavor ? undefined : habitat.accent;
-  platform(sector, trim, shell);
+  platform(sector, trim, habitat.accent);
   const content = node(sector, 0, FLOOR_Y, 0);
-  const room = hexRoom(content, { trim, shell, doors: doorsOf(habitat.id), signMaterial: exitSign, ...habitat.room() });
-  const ticks = [];
+  const room = hexRoom(content, { trim, shell: habitat.accent, doors: doorsOf(habitat.id), signMaterial: exitSign, ...habitat.room() });
+  const ticks = [], walls = room.walls.flatMap(wall => [wall.frame, wall.decor]);
+  const fixtures = new Set([...content.children, ...walls.flatMap(group => group.children)]);
   habitat.build({ content, room, random: rng(habitat.seed), tick: callback => ticks.push(callback) });
+  const added = group => group.children.filter(child => !fixtures.has(child));
+  enlarge(content, [...added(content), ...room.walls.flatMap(wall => added(wall.frame))], FURNISHING_SCALE);
+  enlarge(content, room.walls.flatMap(wall => added(wall.decor)), FURNISHING_SCALE, { ceiling: WALL_HEIGHT - 0.05 });
   bake(content);
   room.bake();
 
@@ -110,7 +152,7 @@ for (const habitat of habitats) {
 
   const label = document.createElement('button');
   label.type = 'button';
-  label.className = habitat.endeavor ? 'endeavor-name' : 'habitat-label';
+  label.className = 'habitat-label';
   label.style.setProperty('--accent', hexColor(habitat.accent));
   const title = document.createElement('strong');
   title.textContent = habitat.name;
@@ -125,29 +167,20 @@ for (const habitat of habitats) {
   label.addEventListener('pointerleave', () => setHover(undefined));
   labelHost.append(label);
 
-  sector.userData = { id: habitat.id, room, ticks, trim, label, hit, scale, opensCrafts: habitat.opensCrafts, labelHeight: (habitat.labelHeight ?? 14.5) * scale };
+  sector.userData = { id: habitat.id, room, ticks, trim, label, hit, labelHeight: habitat.labelHeight ?? 14.5 };
   scene.add(sector);
   sectors.push(sector);
-  if (habitat.endeavor) ghostHex(scene, habitat.slot);
 }
-const sectorOf = id => sectors.find(sector => sector.userData.id === id);
-seams.filter(pair => pair.every(id => !byId(id).endeavor)).forEach(([one, two]) => bridge(scene, sectorOf(one).position, sectorOf(two).position, byId(one).accent));
-
-const endeavorsTitle = document.createElement('p');
-endeavorsTitle.className = 'endeavors-title';
-endeavorsTitle.textContent = 'Endeavors';
-labelHost.append(endeavorsTitle);
+// Built habitats get solid walkways between them; anything touching an empty Endeavor cell is drawn as a blueprint path to its landing.
+for (const pair of seams) {
+  const [one, two] = pair.map(byId), ends = [one, two].map(habitat => (habitat.endeavor ? HUB_END : ROOM_END));
+  if (one.endeavor || two.endeavor) ghostPath(scene, one.slot, two.slot, ends);
+  else bridge(scene, one.slot, two.slot, one.accent, ends);
+}
 
 // Unlit so the floor shows exactly the backdrop colour; a shadow-only layer on top keeps the honeycomb grounded.
-// That layer has holes where the Endeavors' shadows would land, so they float without a drop shadow.
-const groundShape = new THREE.CircleGeometry(220, 96);
-const ground = new THREE.Mesh(groundShape, new THREE.MeshBasicMaterial({ color: BACKDROP, toneMapped: false, fog: false }));
-const shadowCatcher = new THREE.Shape().absarc(0, 0, 220, 0, Math.PI * 2);
-for (const habitat of habitats.filter(entry => entry.endeavor)) {
-  const drop = habitat.pos.clone().addScaledVector(SUN, -(8 + 2.5) / SUN.y);
-  shadowCatcher.holes.push(new THREE.Path().absarc(drop.x, -drop.z, 14, 0, Math.PI * 2, true));
-}
-const groundShadow = new THREE.Mesh(new THREE.ShapeGeometry(shadowCatcher, 48), new THREE.ShadowMaterial({ opacity: 0.32, fog: false }));
+const ground = new THREE.Mesh(new THREE.CircleGeometry(220, 96), new THREE.MeshBasicMaterial({ color: BACKDROP, toneMapped: false, fog: false }));
+const groundShadow = new THREE.Mesh(new THREE.CircleGeometry(220, 96), new THREE.ShadowMaterial({ opacity: 0.32, fog: false }));
 for (const [layer, height] of [[ground, -8], [groundShadow, -7.98]]) {
   layer.rotation.x = -Math.PI / 2;
   layer.position.y = height;
@@ -204,12 +237,22 @@ function flyTo(target, zoom) {
 function focus(sector) {
   focused = sector;
   sectors.forEach(item => item.userData.label.classList.toggle('is-dimmed', Boolean(sector) && item !== sector));
-  endeavorsTitle.classList.toggle('is-dimmed', Boolean(sector));
-  if (sector) flyTo(sector.position.clone().setY(FLOOR_Y * sector.userData.scale), 2.3 / sector.userData.scale);
-  else flyTo(CENTER, 1);
-  if (sector?.userData.opensCrafts) crafts.open();
+  blueprints.forEach(item => item.classList.toggle('is-dimmed', Boolean(sector)));
+  flyTo(sector ? sector.position.clone().setY(FLOOR_Y) : CENTER, sector ? 2.3 : 1);
 }
-renderer.domElement.addEventListener('pointermove', event => setHover(pick(event)));
+function revealOnly(ghost) {
+  ghostAreas.forEach(area => revealGhost(area.userData.ghost, area.userData.ghost === ghost));
+}
+renderer.domElement.addEventListener('pointermove', event => {
+  const sector = pick(event);
+  setHover(sector);
+  // A habitat in front wins; otherwise any placeholder under the pointer fades in.
+  revealOnly(sector ? undefined : raycaster.intersectObjects(ghostAreas, false)[0]?.object.userData.ghost);
+});
+renderer.domElement.addEventListener('pointerleave', () => {
+  setHover(undefined);
+  revealOnly(undefined);
+});
 renderer.domElement.addEventListener('pointerdown', event => {
   pressedAt = [event.clientX, event.clientY];
   dragging = true;
@@ -218,11 +261,11 @@ renderer.domElement.addEventListener('pointerup', event => {
   dragging = false;
   if (!pressedAt || Math.hypot(event.clientX - pressedAt[0], event.clientY - pressedAt[1]) > 5) return;
   const sector = pick(event);
-  focus(sector && (sector !== focused || sector.userData.opensCrafts) ? sector : undefined);
+  focus(sector !== focused ? sector : undefined);
 });
 addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
-  if (!crafts.escape()) focus(undefined);
+  if (!crafts.escape() && !planner.escape()) focus(undefined);
 });
 controls.addEventListener('start', () => {
   if (dragging) flight = undefined;
@@ -237,13 +280,11 @@ function placeLabels() {
     anchor.project(camera);
     sector.userData.label.style.transform = `translate(${((anchor.x + 1) / 2) * width}px, ${((1 - anchor.y) / 2) * height}px) translate(-50%, -100%)`;
   }
-  anchor.copy(ENDEAVORS_ANCHOR).project(camera);
-  endeavorsTitle.style.transform = `translate(${((anchor.x + 1) / 2) * width}px, ${((1 - anchor.y) / 2) * height}px) translate(-50%, -50%)`;
 }
 
 function resize() {
-  // Tall enough for the honeycomb plus the three Endeavors, and wide enough on narrow screens.
-  const width = sceneHost.clientWidth, height = sceneHost.clientHeight, aspect = width / height, frustum = Math.max(104, 152 / aspect);
+  // Close enough to see into the rooms, while the three habitats still fit across narrow screens.
+  const width = sceneHost.clientWidth, height = sceneHost.clientHeight, aspect = width / height, frustum = Math.max(80, 92 / aspect);
   camera.left = -frustum * aspect / 2;
   camera.right = frustum * aspect / 2;
   camera.top = frustum / 2;
@@ -272,15 +313,17 @@ function animate() {
   controls.update();
   requestAnimationFrame(animate);
   // The craft board covers the whole screen, so the scene rests while it's open.
-  if (crafts.covering()) return;
+  if (crafts.covering() || planner.covering()) return;
   view.subVectors(camera.position, controls.target).setY(0).normalize();
   for (const sector of sectors) {
     updateCutaway(sector.userData.room, view, delta);
     sector.userData.ticks.forEach(callback => callback(time, delta));
   }
   earth.rotation.y = time * 0.025;
-  pulseGhosts(time);
+  updateGhosts(time, delta);
   placeLabels();
   renderer.render(scene, camera);
 }
 requestAnimationFrame(animate);
+// A shared link straight to the Life Planner (handy for demos) opens it over the scene.
+if (location.hash === '#life-planner') planner.open();

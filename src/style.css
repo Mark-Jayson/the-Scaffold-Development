@@ -7,22 +7,22 @@ html,body,#scene{width:100%;height:100%;margin:0;overflow:hidden;background:#044
 .habitat-label.is-hovered{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 45%,rgba(255,255,255,.2)),color-mix(in srgb,var(--accent) 22%,rgba(14,16,24,.3)));box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 70%,transparent),0 10px 34px color-mix(in srgb,var(--accent) 35%,transparent)}
 .habitat-label.is-dimmed{opacity:.35}
 .habitat-label:focus-visible{outline:2px solid #fff;outline-offset:3px}
-.hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);max-width:calc(100% - 32px);padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:rgba(240,243,250,.78);font:500 11px/1.3 system-ui,-apple-system,sans-serif;letter-spacing:.02em;text-align:center;pointer-events:none}
-.labels,.hint{z-index:5}
+.labels{z-index:5}
 .brand{position:fixed;top:24px;left:28px;z-index:6;display:flex;align-items:center;gap:clamp(12px,1.3vw,20px);margin:0;line-height:1;pointer-events:none;filter:drop-shadow(0 2px 12px rgba(0,18,56,.35))}
 .brand img{display:block;width:clamp(150px,17vw,260px);height:auto}
 .brand-name{display:flex;align-items:center;gap:inherit;color:#fff;font:300 clamp(17px,1.85vw,28px)/1 Montserrat,system-ui,sans-serif;letter-spacing:.06em;white-space:nowrap}
 .brand-name:before{content:"";width:1px;height:1.3em;background:rgba(255,255,255,.55)}
-.endeavor-name{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 10px;border:0;background:none;color:#fff;font-family:Montserrat,system-ui,sans-serif;white-space:nowrap;pointer-events:auto;cursor:pointer;will-change:transform;text-shadow:0 2px 14px rgba(0,18,56,.55);transition:opacity .25s}
-.endeavor-name strong{font-weight:400;font-size:12px;letter-spacing:.16em;text-transform:uppercase}
-.endeavor-name span{font-weight:300;font-size:10.5px;letter-spacing:.06em;opacity:.72}
-.endeavor-name:after{content:"";width:1px;height:14px;margin-top:2px;background:linear-gradient(rgba(255,255,255,.7),rgba(255,255,255,0))}
-.endeavor-name.is-hovered strong{text-shadow:0 0 14px color-mix(in srgb,var(--accent) 80%,white)}
-.endeavor-name.is-dimmed{opacity:.35}
-.endeavor-name:focus-visible{outline:1px solid rgba(255,255,255,.8);outline-offset:4px;border-radius:6px}
-.endeavors-title{position:absolute;left:0;top:0;display:flex;align-items:center;gap:18px;margin:0;color:#fff;font:300 32px/1 Montserrat,system-ui,sans-serif;letter-spacing:.12em;white-space:nowrap;pointer-events:none;will-change:transform;text-shadow:0 2px 18px rgba(0,18,56,.45);transition:opacity .3s}
-.endeavors-title:before,.endeavors-title:after{content:"";width:48px;height:1px;background:rgba(255,255,255,.55)}
-.endeavors-title.is-dimmed{opacity:0}
+.endeavors{position:fixed;inset:0;z-index:4;pointer-events:none}
+.blueprint{position:absolute;display:flex;flex-direction:column;align-items:center;gap:10px;width:clamp(150px,20vw,300px);margin:0;padding:0;border:0;background:none;color:#fff;font:inherit;opacity:.5;pointer-events:none;transition:opacity .3s}
+.blueprint strong{font:400 12px/1 Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,18,56,.55)}
+.blueprint canvas{width:100%;height:auto;cursor:inherit}
+.blueprint[data-corner=top-right]{top:28px;right:28px}
+.blueprint[data-corner=bottom-left]{bottom:24px;left:28px}
+.blueprint[data-corner=bottom-right]{bottom:24px;right:28px}
+button.blueprint{pointer-events:auto;cursor:pointer}
+button.blueprint:hover,button.blueprint:focus-visible{opacity:.85}
+button.blueprint:focus-visible{outline:1px solid rgba(255,255,255,.8);outline-offset:6px;border-radius:8px}
+.blueprint.is-dimmed{opacity:.2}
 
 /* Crafts home: translucent card over the scene */
 .crafts{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:32px 16px;background:rgba(2,22,58,.3);opacity:0;transition:opacity .35s ease .2s}
@@ -77,7 +77,9 @@ html,body,#scene{width:100%;height:100%;margin:0;overflow:hidden;background:#044
 .craft-panel-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6}
 .craft-panel-toggle[aria-pressed="true"]{background:rgba(255,255,255,.9);color:#044794}
 .craft-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
-@media (max-width:560px){.crafts-head{flex-wrap:wrap}.crafts-search{order:3;width:100%}.endeavors-title{font-size:24px;gap:12px}.endeavors-title:before,.endeavors-title:after{width:28px}.craft-status{display:none}}
+@media (max-width:560px){.crafts-head{flex-wrap:wrap}.crafts-search{order:3;width:100%}.craft-status{display:none}}
+/* Phones: the Tree drops below the logo so it clears the brand. */
+@media (max-width:640px){.blueprint{width:31vw;gap:7px}.blueprint strong{font-size:10px;letter-spacing:.12em}.blueprint[data-corner=top-right]{top:84px;right:14px}.blueprint[data-corner=bottom-left]{bottom:20px;left:14px}.blueprint[data-corner=bottom-right]{bottom:20px;right:14px}}
 
 /* Sketch board */
 .craft-board{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.24) 1.1px,transparent 1.6px);background-size:var(--grid,28px) var(--grid,28px);background-position:var(--grid-x,0) var(--grid-y,0)}
