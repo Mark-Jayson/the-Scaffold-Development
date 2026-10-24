@@ -42,15 +42,16 @@ Opening or creating a craft shows a #044794 dot-grid sketch board.
 
 Each built habitat (Research, Workplace, Startup) holds one endeavor: every webpage, doc, design, repo and app it runs on, in one studio.
 
-- **Collapsed** (the WorkStation): an info card hangs off each habitat with the endeavor's name, the platforms in play, counts, new captures and the latest thing that happened.
-- **Expanded** (click the habitat): a full-screen studio, with the habitat shrunk and half tucked under the bottom edge. Links open as `/#endeavor-research`, `/#endeavor-studios` or `/#endeavor-startup`. The studio is organised as:
-  - **Header:** editable name and goal, search, Chrome connection, Add link, and counts.
-  - **Platform dock:** every platform in this endeavor with its count; tap one to filter.
-  - **Working set:** pinned cards for what you are on right now, with notes and when you last opened them.
-  - **Library:** everything, filtered by kind (Docs, Design, Code, Apps & tools, Webpages, Media); pin, move to another endeavor or remove.
-  - **From Chrome:** new captures waiting to be sorted (Keep, Pin, Move, Remove).
-  - **What's going on:** an activity feed of saves, opens, pins and moves.
-- Links are labelled by platform (Google Docs/Sheets/Slides/Drive, Notion, Figma, Miro, Canva, GitHub, GitLab, Vercel, Linear, Jira, Slack, Claude, YouTube, Loom and more). Sample studios are seeded; their doc and design links are placeholders.
+- **Collapsed** (the WorkStation): an info card hangs off each habitat with the endeavor's name, app logos, counts, its next step, new captures and the latest thing that happened.
+- **Expanded** (click the habitat): a light, white-card studio fills the screen while the whole habitat sits small in a strip along the bottom, with **Close** on the left and the habitat's name on the right. Links open as `/#endeavor-research`, `/#endeavor-studios` or `/#endeavor-startup`.
+- The studio is organised for attention (ADHD-aware) rather than completeness:
+  - **Pick up where you left off:** the last thing you opened, with one Resume button.
+  - **Next step:** one small, editable step you can tick off. It is also shown on the habitat card.
+  - **Now:** at most three pinned things in big cards. More can be pinned, but only three show until you ask, with a gentle nudge to keep it to three.
+  - **New from Chrome:** captures are sorted one at a time (Put in Now, Keep, Move, Remove).
+  - **Everything else:** logo tiles filtered by kind and by app, with search.
+  - **Recently:** a short activity feed that expands on demand.
+- Links show the real GitHub mark and recognisable logos for the other platforms (Google Docs/Sheets/Slides/Drive, Notion, Figma, Miro, Canva, GitHub, GitLab, Vercel, Linear, Jira, Slack, Claude, YouTube, Loom and more). Sample studios are seeded; their doc and design links are placeholders.
 
 **Scaffold Capture** (`extension/`) is a Chrome extension (Manifest V3) that saves the page you are on into an endeavor:
 
@@ -74,7 +75,7 @@ A day timeline with one lane per life aspect or project (Work, Side project, Lea
 - `src/room.js` builds the hex platform, floor, walls with doorways, wall fold-away, solid walkways, blueprint paths and landings, the hover-revealed placeholder outlines, and `enlarge()`, which scales furnishings up while keeping them inside the walls.
 - `src/props.js` holds reusable people (posable rigs) and furniture.
 - `src/textures.js` draws canvas textures for floors, screens, boards, signs and live clocks.
-- `src/studio/` holds the endeavor studios: `platforms.js` (link labelling and symbols), `seed.js` (sample studios) and `studio.js`/`studio.css` (the screen and the extension bridge). `extension/` is the Scaffold Capture Chrome extension.
+- `src/studio/` holds the endeavor studios: `platforms.js` (link labelling), `logos.js` (platform logos and kind symbols), `seed.js` (sample studios) and `studio.js`/`studio.css` (the screen and the extension bridge). `extension/` is the Scaffold Capture Chrome extension.
 - `src/planner/` holds the Life Planner: `modes.js` (mode labeller, energy kit and icons), `plan.js` (prep placement, workload, brief and suggestions), `seed.js` (sample week) and `planner.js`/`planner.css` (the screen).
 - `src/crafts.js` runs the Crafts home card, `src/board.js` the sketch board and `src/craft-store.js` the IndexedDB storage. The markup is in `index.html`.
 - `src/kit.js` provides geometry and material helpers, plus `bake()`, which merges static meshes to keep draw calls low.

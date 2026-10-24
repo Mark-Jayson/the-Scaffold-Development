@@ -6,7 +6,8 @@ import { sign, canvasTexture } from './textures.js';
 import { crafts } from './crafts.js';
 import { planner } from './planner/planner.js';
 import { studio } from './studio/studio.js';
-import { symbol, ago } from './studio/platforms.js';
+import { ago } from './studio/platforms.js';
+import { logo } from './studio/logos.js';
 import { blueprint } from './blueprint.js';
 import { EMBLEMS } from './emblems.js';
 import tree from './habitats/tree.js';
@@ -223,7 +224,7 @@ scene.add(earthGlow);
 
 /* Endeavor studios: each built habitat holds one endeavor's links, docs and apps */
 const escapeHtml = text => String(text).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-studio.register(built.map(habitat => ({ id: habitat.id, name: habitat.name, accent: hexColor(habitat.accent) })));
+studio.register(built.map(habitat => ({ id: habitat.id, name: habitat.name, caption: habitat.caption, accent: hexColor(habitat.accent) })));
 function renderCards() {
   for (const sector of sectors) {
     const summary = studio.summary(sector.userData.id);
@@ -231,7 +232,8 @@ function renderCards() {
     const latest = summary.latest;
     sector.userData.card.innerHTML = `
       <span class="ec-row"><span class="ec-title">${escapeHtml(summary.title)}</span>${summary.fresh ? `<span class="ec-new">${summary.fresh} new</span>` : ''}</span>
-      <span class="ec-row"><span class="ec-symbols">${summary.platforms.map(key => symbol(key, 'sm')).join('')}</span><span class="ec-count">${summary.count} things · ${summary.pinned} pinned</span></span>
+      <span class="ec-row"><span class="ec-symbols">${summary.platforms.map(key => logo(key, { size: 'sm' })).join('')}</span><span class="ec-count">${summary.count} things · ${summary.pinned} in Now</span></span>
+      ${summary.next ? `<span class="ec-next"><b>Next</b><span>${escapeHtml(summary.next)}</span></span>` : ''}
       ${latest ? `<span class="ec-latest">${latest.opened ? 'Opened' : 'Saved'} <span>“${escapeHtml(latest.title)}”</span> · ${ago(latest.at)}</span>` : ''}`;
   }
 }
@@ -267,11 +269,12 @@ function pick(event) {
 function flyTo(target, zoom) {
   flight = { from: controls.target.clone(), to: target.clone(), zoomFrom: camera.zoom, zoomTo: zoom, start: performance.now() };
 }
-// Expanded view: the studio fills the screen and the camera tucks this habitat, half visible, under its bottom edge.
+// Expanded view: the studio fills the screen and the camera frames this habitat, small and whole, in the strip below it.
 // Everything else in the scene steps aside until the studio collapses again.
 const backdrop = new Set([ground, groundShadow, earth, earthGlow, sunlight, sunlight.target]);
 let stashed = [], returnTo;
-const peekHeight = () => Math.max(170, sceneHost.clientHeight * 0.27);
+// Matches the studio's bottom strip (--strip in studio.css).
+const stripHeight = () => (innerWidth <= 640 ? 200 : Math.max(220, innerHeight * 0.3));
 function expand(sector) {
   if (expanded || !sector) return;
   expanded = sector;
@@ -283,15 +286,15 @@ function expand(sector) {
   labelHost.classList.add('is-studio');
   document.querySelector('.brand').classList.add('is-studio');
   document.querySelector('#endeavors').classList.add('is-studio');
-  // A small habitat, about a third of the screen wide (wider on phones, never taller than the strip under the panel),
-  // centred on the bottom edge so only its back half shows.
+  // The whole habitat (about 23 units tall on screen, platform to wall tops) fits the strip under the panel,
+  // above the Close bar, and never wider than about half the screen.
   const frustum = camera.top - camera.bottom, width = camera.right - camera.left, height = sceneHost.clientHeight;
-  const share = width / frustum < 0.8 ? 0.62 : 0.34;
-  const zoom = Math.min((share * width) / (2 * HEX_RADIUS), (frustum * peekHeight()) / (10.5 * height));
+  const room = stripHeight() - 78, zoom = Math.min((frustum * room) / (23 * height), (0.5 * width) / (2 * HEX_RADIUS));
+  const below = (height - stripHeight() + 12 + room / 2 - height / 2) * (frustum / zoom) / height;
   // Screen-up in world space, from the camera's position (its matrices may not be fresh yet on a direct link).
   const look = controls.target.clone().sub(camera.position).normalize();
   const up = new THREE.Vector3(0, 1, 0).addScaledVector(look, -look.y).normalize();
-  flyTo(sector.position.clone().setY(FLOOR_Y).addScaledVector(up, frustum / (2 * zoom)), zoom);
+  flyTo(sector.position.clone().setY(FLOOR_Y).addScaledVector(up, below), zoom);
   studio.open(sector.userData.id, { onClose: collapse });
   history.replaceState(null, '', `#endeavor-${sector.userData.id}`);
 }

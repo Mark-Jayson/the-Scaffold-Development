@@ -8,6 +8,7 @@ const STUDIOS = {
   research: {
     title: 'Focus & sleep study',
     goal: 'Publish the pilot results by December',
+    next: 'Send the revised consent form to the ethics board',
     items: [
       ['Study protocol v4', 'https://docs.google.com/document/d/sample-study-protocol', 3, { pinned: true, opened: 0.5, note: 'Ethics asked for the consent wording change' }],
       ['Participant tracker', 'https://docs.google.com/spreadsheets/d/sample-participants', 20, { pinned: true, opened: 2 }],
@@ -22,6 +23,7 @@ const STUDIOS = {
   studios: {
     title: 'Northwind rebrand',
     goal: 'Client sign-off on the new identity by Friday',
+    next: 'Swap the homepage hero to the darker navy in Figma',
     items: [
       ['Rebrand · homepage v3', 'https://www.figma.com/design/sample-homepage', 2, { pinned: true, opened: 0.2, note: 'Hero needs the darker navy' }],
       ['Client brief', 'https://www.notion.so/sample-client-brief', 120, { pinned: true }],
@@ -37,6 +39,7 @@ const STUDIOS = {
   startup: {
     title: 'Scaffold launch',
     goal: 'Ship v1.0 and land the first 50 users',
+    next: 'Write the Product Hunt tagline',
     items: [
       ['the-Scaffold-Development', 'https://github.com/Mark-Jayson/the-Scaffold-Development', 1, { pinned: true, opened: 0.1, note: 'Life Planner just merged' }],
       ['Scaffold WorkStation (local)', 'http://localhost:5173/', 0.1, { pinned: true, opened: 0.1 }],
@@ -62,6 +65,7 @@ export function seed(now = Date.now()) {
   const endeavors = Object.fromEntries(Object.entries(STUDIOS).map(([id, studio]) => [id, {
     title: studio.title,
     goal: studio.goal,
+    next: { text: studio.next, done: false, at: now - 3 * H },
     items: studio.items.map(([title, url, hours, extras = {}], index) => {
       const { opened, ...rest } = extras;
       return { ...makeItem({ title, url, savedAt: now - hours * H, source: 'sample', ...rest }), id: `${id}-${index}`, openedAt: opened == null ? null : now - opened * H };
